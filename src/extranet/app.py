@@ -53,6 +53,7 @@ def create_app(config=None, **kw):
 
     if not config:
         read_config(app)
+        print("conf:", app.config)
         app.config.from_prefixed_env()
 
     if "DATABASE_URL" in os.environ:
