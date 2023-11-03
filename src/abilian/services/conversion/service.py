@@ -76,11 +76,11 @@ class Converter:
         pdf = self.cache.get_bytes(cache_key)
         if pdf:
             return pdf
-        logger.warning(f"to_pdf: trying convert of blob {blob.__class__.__name__}")
+        # logger.warning(f"to_pdf: trying convert of blob {blob.__class__.__name__}")
         for handler in self.handlers:
-            logger.warning(f"to_pdf: trying handler {handler.__class__.__name__}")
+            # logger.warning(f"to_pdf: trying handler {handler.__class__.__name__}")
             if handler.accept(mime_type, "application/pdf"):
-                logger.warning(f"to_pdf: {handler.__class__.__name__} does accept pdf")
+                logger.warning(f"to_pdf: {handler.__class__.__name__} handler")
                 pdf = handler.convert(blob)
                 logger.error(
                     f"to_pdf: {handler.__class__.__name__} pdf result: {type(pdf)}"

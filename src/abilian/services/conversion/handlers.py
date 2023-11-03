@@ -483,7 +483,7 @@ class LibreOfficePdfHandler(Handler):
             run_thread = threading.Thread(target=run_soffice)
             run_thread.start()
             run_thread.join(timeout)
-
+            logger.debug(f"soffice done on file: {Path(in_fn).name}")
             try:
                 if run_thread.is_alive():
                     # timeout reached
