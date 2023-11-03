@@ -22,7 +22,7 @@ from PIL.ExifTags import TAGS
 
 from .cache import Cache
 from .exceptions import HandlerNotFound
-from .handlers import Handler
+from .handlers import Handler, poppler_bin_util
 from .util import make_temp_file
 
 logger = logging.getLogger(__name__)
@@ -76,10 +76,17 @@ class Converter:
         pdf = self.cache.get_bytes(cache_key)
         if pdf:
             return pdf
-
+        logger.warning(f"to_pdf: trying convert of blob {blob.__class__.__name__}")
         for handler in self.handlers:
+            logger.warning(f"to_pdf: trying handler {handler.__class__.__name__}")
             if handler.accept(mime_type, "application/pdf"):
+                logger.warning(f"to_pdf: {handler.__class__.__name__} does accept pdf")
                 pdf = handler.convert(blob)
+                logger.error(
+                    f"to_pdf: {handler.__class__.__name__} pdf result: {type(pdf)}"
+                )
+                if pdf is None:
+                    continue
                 self.cache[cache_key] = pdf
                 return pdf
         raise HandlerNotFound(f"No handler found to convert from {mime_type} to PDF")
@@ -193,8 +200,9 @@ class Converter:
                 content = self.to_pdf(digest, content, mime_type)
 
             with make_temp_file(content) as in_fn:
+                pdfinfo = poppler_bin_util("pdfinfo") or "pdfinfo"
                 try:
-                    output = subprocess.check_output(["pdfinfo", in_fn])
+                    output = subprocess.check_output([pdfinfo, in_fn])
                 except OSError:  # pragma: no cover
                     logger.error("Conversion failed, probably pdfinfo is not installed")
                     raise
