@@ -416,7 +416,7 @@ class LibreOfficePdfHandler(Handler):
     def convert(self, blob: bytes, **kw: Any) -> bytes:
         """Convert using soffice converter."""
         timeout = self.run_timeout
-        with make_temp_file(blob) as in_fn:
+        with make_temp_file(blob, tmp_dir=self.tmp_dir) as in_fn:
             cmd = [
                 self.soffice,
                 "--headless",
@@ -426,28 +426,6 @@ class LibreOfficePdfHandler(Handler):
                 str(self.tmp_dir),
                 str(in_fn),
             ]
-
-            # # TODO: fix this if needed, or remove if not needed
-            # if os.path.exists(
-            #         "/Applications/LibreOffice.app/Contents/program/python"):
-            #     cmd = [
-            #         '/Applications/LibreOffice.app/Contents/program/python',
-            #         '/usr/local/bin/unoconv', '-f', 'pdf', '-o', out_fn, in_fn
-            #     ]
-
-            # def run_soffice():
-            #     try:
-            #         self._process = subprocess.Popen(
-            #             cmd, close_fds=True, cwd=bytes(self.tmp_dir)
-            #         )
-            #         self._process.communicate()
-            #     except Exception as e:
-            #         logger.error("soffice error: %s", e, exc_info=True)
-            #         raise ConversionError("soffice conversion failed") from e
-
-            # run_thread = threading.Thread(target=run_soffice)
-            # run_thread.start()
-            # run_thread.join(timeout)
 
             # logger.warning("convert cmd: %s", cmd)
             # logger.warning("tmp_dir: %s", self.tmp_dir)
@@ -461,10 +439,13 @@ class LibreOfficePdfHandler(Handler):
                 #         check=True,
                 #     )
                 try:
+                    logger.error("before soffice cmd")
                     self._process = subprocess.Popen(
-                        cmd, close_fds=True, cwd=bytes(self.tmp_dir)
+                        cmd, close_fds=True, cwd=str(self.tmp_dir)
                     )
+                    logger.error("after soffice")
                     self._process.communicate()
+                    logger.error("after soffice communicate")
                 except subprocess.CalledProcessError as e:
                     logger.error("CalledProcessError for soffice")
                     logger.error(" ".join(cmd))
