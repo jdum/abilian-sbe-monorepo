@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import threading
+import time
 import traceback
 from abc import ABCMeta, abstractmethod
 from base64 import b64decode, b64encode
@@ -28,6 +29,33 @@ from .exceptions import ConversionError
 from .util import get_tmp_dir, make_temp_file
 
 logger = logging.getLogger(__name__)
+
+LOCK_EXPIRE = 300  # 5 mins
+LOCK_CACHE = {}  # expect no fork here
+
+
+@contextlib.contextmanager
+def memcache_lock(lock_name):
+    """Idea from Celery cookbook, used differently."""
+    timeout_at = time.monotonic() + LOCK_EXPIRE
+    # cache.add fails if the key already exists
+    if lock_name in LOCK_CACHE:
+        status = False
+    else:
+        LOCK_CACHE[lock_name] = True
+        status = True
+    try:
+        yield status
+    finally:
+        # memcache delete is very slow, but we have to use it to take
+        # advantage of using add() for atomic locking
+        if time.monotonic() < timeout_at and status:
+            # don't release the lock if we exceeded the timeout
+            # to lessen the chance of releasing an expired lock
+            # owned by someone else
+            # also don't release the lock if we didn't acquire it
+            with contextlib.suppress(KeyError):
+                del LOCK_CACHE[lock_name]
 
 
 def poppler_bin_util(util: str) -> str:
@@ -114,28 +142,29 @@ class PdfToTextHandler(Handler):
     produces_mime_types = ["text/plain"]
 
     def convert(self, blob: bytes, **kw: Any) -> str:
-        with make_temp_file(blob) as in_fn, make_temp_file() as out_fn:
-            pdftotext = poppler_bin_util("pdftotext") or "pdftotext"
-            try:
-                subprocess.check_call([pdftotext, in_fn, out_fn])
-            except Exception as e:
-                raise ConversionError("pdftotext failed") from e
+        with memcache_lock("PdfToTextHandler") as acquired:
+            with make_temp_file(blob) as in_fn, make_temp_file() as out_fn:
+                pdftotext = poppler_bin_util("pdftotext") or "pdftotext"
+                try:
+                    subprocess.check_call([pdftotext, in_fn, out_fn])
+                except Exception as e:
+                    raise ConversionError("pdftotext failed") from e
 
-            converted = open(out_fn, "rb").read()
+                converted = open(out_fn, "rb").read()
+                try:
+                    encoding = self.encoding_sniffer.from_file(out_fn)
+                except Exception:
+                    encoding = None
+
+            if encoding in ("binary", None):
+                encoding = "ascii"
             try:
-                encoding = self.encoding_sniffer.from_file(out_fn)
+                converted_unicode = str(converted, encoding, errors="ignore")
             except Exception:
-                encoding = None
+                traceback.print_exc()
+                converted_unicode = str(converted, errors="ignore")
 
-        if encoding in ("binary", None):
-            encoding = "ascii"
-        try:
-            converted_unicode = str(converted, encoding, errors="ignore")
-        except Exception:
-            traceback.print_exc()
-            converted_unicode = str(converted, errors="ignore")
-
-        return converted_unicode
+            return converted_unicode
 
 
 class AbiwordTextHandler(Handler):
@@ -212,13 +241,14 @@ class ImageMagickHandler(Handler):
     produces_mime_types = ["application/pdf"]
 
     def convert(self, blob: bytes, **kw) -> bytes:
-        with make_temp_file(blob) as in_fn, make_temp_file() as out_fn:
-            try:
-                subprocess.check_call(["convert", in_fn, f"pdf:{out_fn}"])
-                converted = open(out_fn, "rb").read()
-                return converted
-            except Exception as e:
-                raise ConversionError("convert failed") from e
+        with memcache_lock("ImageMagickHandler") as acquired:
+            with make_temp_file(blob) as in_fn, make_temp_file() as out_fn:
+                try:
+                    subprocess.check_call(["convert", in_fn, f"pdf:{out_fn}"])
+                    converted = open(out_fn, "rb").read()
+                    return converted
+                except Exception as e:
+                    raise ConversionError("convert failed") from e
 
 
 class PdfToPpmHandler(Handler):
@@ -227,25 +257,26 @@ class PdfToPpmHandler(Handler):
 
     def convert(self, blob: bytes, size: int = 500, **kw) -> list[bytes]:
         """Size is the maximum horizontal size."""
-        file_list: list[str] = []
-        with make_temp_file(blob) as in_fn, make_temp_file() as out_fn:
-            pdftoppm = poppler_bin_util("pdftoppm") or "pdftoppm"
-            try:
-                subprocess.check_call([pdftoppm, "-jpeg", in_fn, out_fn])
-                file_list = sorted(glob.glob(f"{out_fn}-*.jpg"))
+        with memcache_lock("PdfToPpmHandler") as acquired:
+            file_list: list[str] = []
+            with make_temp_file(blob) as in_fn, make_temp_file() as out_fn:
+                pdftoppm = poppler_bin_util("pdftoppm") or "pdftoppm"
+                try:
+                    subprocess.check_call([pdftoppm, "-jpeg", in_fn, out_fn])
+                    file_list = sorted(glob.glob(f"{out_fn}-*.jpg"))
 
-                converted_images = []
-                for fn in file_list:
-                    converted = resize(open(fn, "rb").read(), size, size)
-                    converted_images.append(converted)
+                    converted_images = []
+                    for fn in file_list:
+                        converted = resize(open(fn, "rb").read(), size, size)
+                        converted_images.append(converted)
 
-                return converted_images
-            except Exception as e:
-                raise ConversionError("pdftoppm failed") from e
-            finally:
-                for fn in file_list:
-                    with contextlib.suppress(OSError):
-                        os.remove(fn)
+                    return converted_images
+                except Exception as e:
+                    raise ConversionError("pdftoppm failed") from e
+                finally:
+                    for fn in file_list:
+                        with contextlib.suppress(OSError):
+                            os.remove(fn)
 
 
 class UnoconvPdfHandler(Handler):
@@ -415,75 +446,75 @@ class LibreOfficePdfHandler(Handler):
 
     def convert(self, blob: bytes, **kw: Any) -> bytes:
         """Convert using soffice converter."""
-        timeout = self.run_timeout
-        with make_temp_file(blob, tmp_dir=self.tmp_dir) as in_fn:
-            cmd = [
-                self.soffice,
-                "--headless",
-                "--convert-to",
-                "pdf",
-                "--outdir",
-                str(self.tmp_dir),
-                str(in_fn),
-            ]
 
-            # logger.warning("convert cmd: %s", cmd)
-            # logger.warning("tmp_dir: %s", self.tmp_dir)
-            def run_soffice():
-                # try:
-                #     completed = subprocess.run(
-                #         cmd,
-                #         capture_output=True,
-                #         cwd=str(self.tmp_dir),
-                #         # timeout=timeout,
-                #         check=True,
-                #     )
+        with memcache_lock("LibreOfficePdfHandler") as acquired:
+            timeout = self.run_timeout
+            with make_temp_file(blob, tmp_dir=self.tmp_dir) as in_fn:
+                cmd = [
+                    self.soffice,
+                    "--headless",
+                    "--convert-to",
+                    "pdf",
+                    "--outdir",
+                    str(self.tmp_dir),
+                    str(in_fn),
+                ]
+
+                # logger.warning("convert cmd: %s", cmd)
+                # logger.warning("tmp_dir: %s", self.tmp_dir)
+                def run_soffice():
+                    # try:
+                    #     completed = subprocess.run(
+                    #         cmd,
+                    #         capture_output=True,
+                    #         cwd=str(self.tmp_dir),
+                    #         # timeout=timeout,
+                    #         check=True,
+                    #     )
+                    try:
+                        self._process = subprocess.Popen(
+                            cmd, close_fds=True, cwd=str(self.tmp_dir)
+                        )
+                        self._process.communicate()
+                    except subprocess.CalledProcessError as e:
+                        logger.error("CalledProcessError for soffice")
+                        logger.error(" ".join(cmd))
+                        for file in Path(self.tmp_dir).glob("*"):
+                            logger.error(f"{file.name}: {file.stat()}")
+                        logger.error(f"returncode:{e.returncode}")
+                        logger.error(f"e.cmd:{e.cmd}")
+                        logger.error(f"stdout:{e.stdout}")
+                        logger.error(f"stderr:{e.stderr}")
+                        logger.error(f"env:{pformat(dict(os.environ))}")
+                        raise ConversionError() from e
+                    except Exception as e:
+                        logger.error("soffice error: %s", e, exc_info=True)
+                        raise ConversionError() from e
+
+                run_thread = threading.Thread(target=run_soffice)
+                run_thread.start()
+                run_thread.join(timeout)
                 try:
-                    logger.error("before soffice cmd")
-                    self._process = subprocess.Popen(
-                        cmd, close_fds=True, cwd=str(self.tmp_dir)
-                    )
-                    logger.error("after soffice")
-                    self._process.communicate()
-                    logger.error("after soffice communicate")
-                except subprocess.CalledProcessError as e:
-                    logger.error("CalledProcessError for soffice")
-                    logger.error(" ".join(cmd))
-                    for file in Path(self.tmp_dir).glob("*"):
-                        logger.error(f"{file.name}: {file.stat()}")
-                    logger.error(f"returncode:{e.returncode}")
-                    logger.error(f"e.cmd:{e.cmd}")
-                    logger.error(f"stdout:{e.stdout}")
-                    logger.error(f"stderr:{e.stderr}")
-                    logger.error(f"env:{pformat(dict(os.environ))}")
-                    raise ConversionError() from e
-                except Exception as e:
-                    logger.error("soffice error: %s", e, exc_info=True)
-                    raise ConversionError() from e
+                    if run_thread.is_alive():
+                        # timeout reached
+                        self._process.terminate()
+                        if self._process.poll() is not None:
+                            try:
+                                self._process.kill()
+                            except OSError:
+                                logger.warning(
+                                    "Failed to kill process %s", self._process
+                                )
 
-            run_thread = threading.Thread(target=run_soffice)
-            run_thread.start()
-            run_thread.join(timeout)
-            logger.debug(f"soffice done on file: {Path(in_fn).name}")
-            try:
-                if run_thread.is_alive():
-                    # timeout reached
-                    self._process.terminate()
-                    if self._process.poll() is not None:
-                        try:
-                            self._process.kill()
-                        except OSError:
-                            logger.warning("Failed to kill process %s", self._process)
+                        raise ConversionError(f"Conversion timeout ({timeout})")
 
-                    raise ConversionError(f"Conversion timeout ({timeout})")
-
-                out_fn = f"{os.path.splitext(in_fn)[0]}.pdf"
-                debug(in_fn, out_fn)
-                converted = open(out_fn, "rb").read()
-                return converted
-            finally:
-                if hasattr(self, "_process"):
-                    del self._process
+                    out_fn = f"{os.path.splitext(in_fn)[0]}.pdf"
+                    debug(in_fn, out_fn)
+                    converted = open(out_fn, "rb").read()
+                    return converted
+                finally:
+                    if hasattr(self, "_process"):
+                        del self._process
 
 
 class CloudoooPdfHandler(Handler):
