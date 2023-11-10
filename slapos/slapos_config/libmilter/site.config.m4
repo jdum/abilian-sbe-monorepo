@@ -3,6 +3,9 @@
 APPENDDEF(`confLIBDIRS', `-L/usr/lib')
 APPENDDEF(`confINCDIRS', `-I/usr/include')
 
+APPENDDEF(`confLIBDIR', `/lib')
+APPENDDEF(`confINCLUDEDIR', `/include')
+
 APPENDDEF(`confLIBS', `-lresolv')
 
 dnl ### Changes to disable the default NIS support

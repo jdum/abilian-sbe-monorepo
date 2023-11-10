@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "abilian-sbe-next"
-version = "1.0.65"
+version = "1.0.66"
 description = ""
 authors = ["Abilian SAS <contact@abilian.com>"]
 
@@ -70,6 +70,7 @@ Whoosh = "^2.7.4"
 # Task queue
 celery = "==5.3.5"
 redis = "~3.5.3"
+filelock = ">=3.12.4"
 
 # Security
 bleach = { version = "^5.0.1", extras = [ "css" ] }
