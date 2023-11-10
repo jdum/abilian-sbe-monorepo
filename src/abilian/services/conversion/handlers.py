@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import filelock
 import glob
 import hashlib
 import logging
@@ -31,31 +32,6 @@ from .util import get_tmp_dir, make_temp_file
 logger = logging.getLogger(__name__)
 
 LOCK_EXPIRE = 300  # 5 mins
-LOCK_CACHE = {}  # expect no fork here
-
-
-@contextlib.contextmanager
-def memcache_lock(lock_name):
-    """Idea from Celery cookbook, used differently."""
-    timeout_at = time.monotonic() + LOCK_EXPIRE
-    # cache.add fails if the key already exists
-    if lock_name in LOCK_CACHE:
-        status = False
-    else:
-        LOCK_CACHE[lock_name] = True
-        status = True
-    try:
-        yield status
-    finally:
-        # memcache delete is very slow, but we have to use it to take
-        # advantage of using add() for atomic locking
-        if time.monotonic() < timeout_at and status:
-            # don't release the lock if we exceeded the timeout
-            # to lessen the chance of releasing an expired lock
-            # owned by someone else
-            # also don't release the lock if we didn't acquire it
-            with contextlib.suppress(KeyError):
-                del LOCK_CACHE[lock_name]
 
 
 def poppler_bin_util(util: str) -> str:
@@ -142,7 +118,12 @@ class PdfToTextHandler(Handler):
     produces_mime_types = ["text/plain"]
 
     def convert(self, blob: bytes, **kw: Any) -> str:
-        with memcache_lock("PdfToTextHandler") as acquired:
+        lock = filelock.FileLock(
+            self.tmp_dir / "PdfToTextHandler.lock",
+            timeout=LOCK_EXPIRE,
+        )
+        try:
+            lock.acquire()
             with make_temp_file(blob) as in_fn, make_temp_file() as out_fn:
                 pdftotext = poppler_bin_util("pdftotext") or "pdftotext"
                 try:
@@ -165,6 +146,11 @@ class PdfToTextHandler(Handler):
                 converted_unicode = str(converted, errors="ignore")
 
             return converted_unicode
+        except filelock.Timeout as e:
+            logger.error(f"{e}")
+            raise ConversionError from e
+        finally:
+            lock.release()
 
 
 class AbiwordTextHandler(Handler):
@@ -241,7 +227,12 @@ class ImageMagickHandler(Handler):
     produces_mime_types = ["application/pdf"]
 
     def convert(self, blob: bytes, **kw) -> bytes:
-        with memcache_lock("ImageMagickHandler") as acquired:
+        lock = filelock.FileLock(
+            self.tmp_dir / "ImageMagickHandler.lock",
+            timeout=LOCK_EXPIRE,
+        )
+        try:
+            lock.acquire()
             with make_temp_file(blob) as in_fn, make_temp_file() as out_fn:
                 try:
                     subprocess.check_call(["convert", in_fn, f"pdf:{out_fn}"])
@@ -249,6 +240,11 @@ class ImageMagickHandler(Handler):
                     return converted
                 except Exception as e:
                     raise ConversionError("convert failed") from e
+        except filelock.Timeout as e:
+            logger.error(f"{e}")
+            raise ConversionError from e
+        finally:
+            lock.release()
 
 
 class PdfToPpmHandler(Handler):
@@ -257,7 +253,12 @@ class PdfToPpmHandler(Handler):
 
     def convert(self, blob: bytes, size: int = 500, **kw) -> list[bytes]:
         """Size is the maximum horizontal size."""
-        with memcache_lock("PdfToPpmHandler") as acquired:
+        lock = filelock.FileLock(
+            self.tmp_dir / "PdfToPpmHandler.lock",
+            timeout=LOCK_EXPIRE,
+        )
+        try:
+            lock.acquire()
             file_list: list[str] = []
             with make_temp_file(blob) as in_fn, make_temp_file() as out_fn:
                 pdftoppm = poppler_bin_util("pdftoppm") or "pdftoppm"
@@ -277,6 +278,11 @@ class PdfToPpmHandler(Handler):
                     for fn in file_list:
                         with contextlib.suppress(OSError):
                             os.remove(fn)
+        except filelock.Timeout as e:
+            logger.error(f"{e}")
+            raise ConversionError from e
+        finally:
+            lock.release()
 
 
 class UnoconvPdfHandler(Handler):
@@ -446,8 +452,12 @@ class LibreOfficePdfHandler(Handler):
 
     def convert(self, blob: bytes, **kw: Any) -> bytes:
         """Convert using soffice converter."""
-
-        with memcache_lock("LibreOfficePdfHandler") as acquired:
+        lock = filelock.FileLock(
+            self.tmp_dir / "LibreOfficePdfHandler.lock",
+            timeout=LOCK_EXPIRE,
+        )
+        try:
+            lock.acquire()
             timeout = self.run_timeout
             with make_temp_file(blob, tmp_dir=self.tmp_dir) as in_fn:
                 cmd = [
@@ -515,6 +525,12 @@ class LibreOfficePdfHandler(Handler):
                 finally:
                     if hasattr(self, "_process"):
                         del self._process
+
+        except filelock.Timeout as e:
+            logger.error(f"{e}")
+            raise ConversionError from e
+        finally:
+            lock.release()
 
 
 class CloudoooPdfHandler(Handler):
