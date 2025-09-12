@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.14] - 2025-09-12
+## [1.1.15] - 2025-09-12
 
 ### Bug Fixes
 - Remove dependency on mmdb-writer and netaddr
