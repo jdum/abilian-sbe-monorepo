@@ -1,6 +1,6 @@
 [project]
 name = "abilian-sbe"
-version = "1.1.15"
+version = "1.1.16"
 description = "Social Business platform (entreprise collaboration and information management)"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
@@ -56,7 +56,7 @@ dependencies = [
     "filelock>=3.15,<4.0",
     # Security
     "bleach[css]>=6.2.0,<7.0.0",
-    "bcrypt",
+    "bcrypt==4.3.0",  # current version 5.0.0 need to be tested on Slapos
     "defusedxml>=0.7.1,<0.8.0",
     # Various libs
     "deprecated",
