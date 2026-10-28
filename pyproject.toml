@@ -1,6 +1,6 @@
 [project]
 name = "abilian-sbe"
-version = "1.1.16"
+version = "1.1.17"
 description = "Social Business platform (entreprise collaboration and information management)"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
@@ -90,7 +90,7 @@ dependencies = [
     #
     "pytest>=8.3.3",
     "hyperlink>=21.0.0",
-    "python-dotenv>=1.0.1",
+    "python-dotenv>=1.2.4",
 ]
 
 [project.urls]
