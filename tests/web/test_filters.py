@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -138,16 +138,16 @@ def app() -> Iterator[Flask]:
 
 def test_date_age(app: Flask) -> None:
     date_age = filters.date_age
-    now = datetime.datetime(2012, 6, 10, 10, 10, 10, tzinfo=utc)
+    now = dt.datetime(2012, 6, 10, 10, 10, 10, tzinfo=utc)
     assert date_age(None) == ""
 
-    dt = datetime.datetime(2012, 6, 10, 10, 10, 0, tzinfo=utc)
+    dt = dt.datetime(2012, 6, 10, 10, 10, 0, tzinfo=utc)
     assert date_age(dt, now) == "2012-06-10 18:10 (1 minute ago)"
 
-    dt = datetime.datetime(2012, 6, 10, 10, 8, 10, tzinfo=utc)
+    dt = dt.datetime(2012, 6, 10, 10, 8, 10, tzinfo=utc)
     assert date_age(dt, now) == "2012-06-10 18:08 (2 minutes ago)"
 
-    dt = datetime.datetime(2012, 6, 10, 8, 30, 10, tzinfo=utc)
+    dt = dt.datetime(2012, 6, 10, 8, 30, 10, tzinfo=utc)
     assert date_age(dt, now) == "2012-06-10 16:30 (2 hours ago)"
 
     # for coverage: test when using default parameter now=None
@@ -161,10 +161,10 @@ def test_date_age(app: Flask) -> None:
 
 def test_age(app: Flask) -> None:
     age = filters.age
-    now = datetime.datetime(2012, 6, 10, 10, 10, 10, tzinfo=utc)
-    d1m = datetime.datetime(2012, 6, 10, 10, 10, 0, tzinfo=utc)
-    d3w = datetime.datetime(2012, 5, 18, 8, 0, 0, tzinfo=utc)
-    d2011 = datetime.datetime(2011, 9, 4, 12, 12, 0, tzinfo=utc)
+    now = dt.datetime(2012, 6, 10, 10, 10, 10, tzinfo=utc)
+    d1m = dt.datetime(2012, 6, 10, 10, 10, 0, tzinfo=utc)
+    d3w = dt.datetime(2012, 5, 18, 8, 0, 0, tzinfo=utc)
+    d2011 = dt.datetime(2011, 9, 4, 12, 12, 0, tzinfo=utc)
 
     # default parameters
     assert age(None) == ""
