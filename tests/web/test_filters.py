@@ -141,14 +141,14 @@ def test_date_age(app: Flask) -> None:
     now = dt.datetime(2012, 6, 10, 10, 10, 10, tzinfo=utc)
     assert date_age(None) == ""
 
-    dt = dt.datetime(2012, 6, 10, 10, 10, 0, tzinfo=utc)
-    assert date_age(dt, now) == "2012-06-10 18:10 (1 minute ago)"
+    date = dt.datetime(2012, 6, 10, 10, 10, 0, tzinfo=utc)
+    assert date_age(date, now) == "2012-06-10 18:10 (1 minute ago)"
 
-    dt = dt.datetime(2012, 6, 10, 10, 8, 10, tzinfo=utc)
-    assert date_age(dt, now) == "2012-06-10 18:08 (2 minutes ago)"
+    date = dt.datetime(2012, 6, 10, 10, 8, 10, tzinfo=utc)
+    assert date_age(date, now) == "2012-06-10 18:08 (2 minutes ago)"
 
-    dt = dt.datetime(2012, 6, 10, 8, 30, 10, tzinfo=utc)
-    assert date_age(dt, now) == "2012-06-10 16:30 (2 hours ago)"
+    date = dt.datetime(2012, 6, 10, 8, 30, 10, tzinfo=utc)
+    assert date_age(date, now) == "2012-06-10 16:30 (2 hours ago)"
 
     # for coverage: test when using default parameter now=None
     # dt_patcher = mock.patch.object(
