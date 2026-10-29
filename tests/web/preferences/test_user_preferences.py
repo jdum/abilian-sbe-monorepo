@@ -4,11 +4,12 @@
 
 from __future__ import annotations
 
-import imghdr
+from io import BytesIO
 from pathlib import Path
 
 from flask import request, url_for
 from flask_login import login_user
+from PIL import Image
 
 from abilian.core.models.subjects import create_root_user
 from abilian.web.preferences.user import UserPreferencesForm
@@ -32,6 +33,7 @@ def test_form_photo(app, db) -> None:
         assert form.photo.data is not None
 
         img_data = form.photo.data
-        img_type = imghdr.what("ignored", img_data)
+        with Image.open(BytesIO(img_data)) as img:
+            img_type = (img.format or "").lower()
         # ???: should be 'png' but is 'jpeg' on Python 2
         assert img_type in ("png", "jpeg")

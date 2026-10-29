@@ -129,6 +129,7 @@ dev = [
     "tox>=4.5.1,<5.0.0",
     "pytest-flask",
     "flask-linktester",
+    "pillow>=13.0.0",  # to replace imghdr
     # Type hints
     "types-bleach",
     "types-deprecated",

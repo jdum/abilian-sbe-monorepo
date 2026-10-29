@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import imghdr
-
 import sqlalchemy as sa
 from flask import request
 from flask_babel import gettext as _, lazy_gettext as _l
@@ -128,11 +126,6 @@ class CommunityForm(Form):
         if not valid:
             raise ValidationError(_("Only PNG or JPG image files are accepted"))
 
-        img_type = imghdr.what("ignored", data.read())
-
-        if img_type not in ("png", "jpeg"):
-            raise ValidationError(_("Only PNG or JPG image files are accepted"))
-
         data.seek(0)
         try:
             # check this is actually an image file
@@ -140,6 +133,10 @@ class CommunityForm(Form):
             im.load()
         except BaseException as e:
             raise ValidationError(_("Could not decode image file")) from e
+
+        img_type = (im.format or "").lower()
+        if img_type not in ("png", "jpeg"):
+            raise ValidationError(_("Only PNG or JPG image files are accepted"))
 
         data.seek(0)
         field.data = data
