@@ -31,8 +31,8 @@ class FormPermissions:
     def __init__(
         self,
         default: Role = ANONYMOUS,
-        read: None | Role | Collection[Role] = None,
-        write: None | Role | Collection[Role] = None,
+        read: Role | Collection[Role] | None = None,
+        write: Role | Collection[Role] | None = None,
         fields_read: dict[str, Collection[Role]] | None = None,
         fields_write: dict[str, Collection[Role]] | None = None,
         existing: Any | None = None,
@@ -110,7 +110,7 @@ class FormPermissions:
         self,
         permission: Permission,
         field: str | None = None,
-        obj: None | Entity | object = None,
+        obj: Entity | object | None = None,
         user: User | None = None,
     ) -> bool:
         if user is None:
