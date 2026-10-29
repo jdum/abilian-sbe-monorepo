@@ -191,7 +191,7 @@ def uniquelogins(sessions: list[Any]) -> tuple[list[Any], list[Any], list[Any]]:
 
     # GroupBy Week/month, Thanks Panda
     weekly_serie = daily_serie.groupby(pd.Grouper(freq="W")).aggregate(numpysum)
-    monthly_serie = daily_serie.groupby(pd.Grouper(freq="M")).aggregate(numpysum)
+    monthly_serie = daily_serie.groupby(pd.Grouper(freq="ME")).aggregate(numpysum)
 
     for date, value in weekly_serie.items():
         try:
