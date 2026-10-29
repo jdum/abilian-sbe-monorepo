@@ -42,7 +42,7 @@ dependencies = [
     "cssmin",
     "closure==20161201",
     #
-    "python-dateutil>=2.8.2,<3.0.0",
+    "python-dateutil>=2.8.2",
     # Search
     "whoosh-reloaded>=2.7.5,<3.0.0",
     # task queue
@@ -53,7 +53,7 @@ dependencies = [
     "apscheduler>=3.10.4,<4.0.0",
     # Infra
     "loguru>=0.7.2,<0.8.0",
-    "filelock>=3.15,<4.0",
+    "filelock>=3.15",
     # Security
     "bleach[css]>=6.2.0,<7.0.0",
     "bcrypt==4.3.0",  # current version 5.0.0 need to be tested on Slapos
@@ -67,7 +67,7 @@ dependencies = [
     "pandas>=2.2.0",
     "validate_email",
     "toolz",
-    "html2text>=2024,<2025",
+    "html2text>=2024",
     "devtools",
     "svcs>=24.1.0",
     "attrs>=24.2.0",
@@ -125,8 +125,8 @@ dev = [
     # Testing
     "html5lib",
     "hyperlink",
-    "pytest>=8,<9",
-    "tox>=4.5.1,<5.0.0",
+    "pytest>=8.3.3",
+    "tox>=4.5.1",
     "pytest-flask",
     "flask-linktester",
     "pillow>=13.0.0",  # to replace imghdr
