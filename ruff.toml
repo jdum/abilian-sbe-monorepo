@@ -88,6 +88,8 @@ lint.extend-ignore = [
 [lint.per-file-ignores]
 "tests/**/*.py" = ["INP001"] # implicit namespace packages
 "**/__init__.py" = ["F401"] # 'module' imported but unused
+"migrations/**/*.py" = ["E402","INP001"] # Module level import not at top of file, part of an implicit namespace package
+"cloud/slapos/utils/*.py" = ["INP001"] #  part of an implicit namespace package
 
 [lint.mccabe]
 max-complexity = 10
