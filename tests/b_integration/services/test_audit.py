@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 from itertools import count
 
 import sqlalchemy as sa
@@ -110,7 +110,7 @@ def test_audit(app, session) -> None:
     assert entry.entity == account
     assert entry.changes.columns == {"website": ("", "http://www.john.com/")}
 
-    account.birthday = datetime.date(2012, 12, 25)
+    account.birthday = dt.date(2012, 12, 25)
     session.commit()
     assert len(AuditEntry.query.all()) == 3
 
@@ -118,7 +118,7 @@ def test_audit(app, session) -> None:
     assert entry.type == UPDATE
     assert entry.entity_id == account.id
     assert entry.entity == account
-    assert entry.changes.columns == {"birthday": (None, datetime.date(2012, 12, 25))}
+    assert entry.changes.columns == {"birthday": (None, dt.date(2012, 12, 25))}
 
     # content hiding
     account.password = "new super secret password"  # noqa: S105

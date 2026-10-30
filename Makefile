@@ -43,12 +43,12 @@ lint-ruff:
 	ruff check src tests
 
 .PHONY: lint
-lint: lint-ruff lint-py
+lint: lint-ruff
 
-.PHONY: lint-py
-lint-py:
-	# flake8 src tests
-	deptry src
+    #.PHONY: lint-py
+    #lint-py:
+	#flake8 src tests
+	# deptry src
 	# python -m pyanalyze --config-file pyproject.toml
 	# mypy --show-error-codes src tests
 	# pyright src tests

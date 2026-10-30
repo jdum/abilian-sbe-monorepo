@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 from typing import TYPE_CHECKING
 from unittest import mock
 
@@ -126,7 +126,7 @@ def test_datetime_field(app: Application) -> None:
         field.process_formdata(["17/06/1789 | 10:42"])
         # 1789: applied offset for HongKong is equal to LMT+7:37:00,
         # thus we compare with tzinfo=user_tz
-        expected_datetime = datetime.datetime(1789, 6, 17, 10, 42, tzinfo=USER_TZ)
+        expected_datetime = dt.datetime(1789, 6, 17, 10, 42, tzinfo=USER_TZ)
         assert field.data == expected_datetime
         # UTC stored
         assert field.data.tzinfo is pytz.UTC
@@ -143,7 +143,7 @@ def test_datetime_field(app: Application) -> None:
 
         # test more recent date: offset is GMT+8
         field.process_formdata(["23/01/2011 | 10:42"])
-        expected_datetime = datetime.datetime(2011, 1, 23, 2, 42, tzinfo=pytz.utc)
+        expected_datetime = dt.datetime(2011, 1, 23, 2, 42, tzinfo=pytz.utc)
         assert field.data == expected_datetime
 
 
@@ -163,12 +163,12 @@ def test_datetime_field_naive(app: Application) -> None:
 
         # UTC stored
         assert field.data.tzinfo is pytz.UTC
-        expected_datetime = datetime.datetime(1789, 6, 17, 10, 42, tzinfo=pytz.UTC)
+        expected_datetime = dt.datetime(1789, 6, 17, 10, 42, tzinfo=pytz.UTC)
         assert field.data == expected_datetime
 
         # naive stored
         field.populate_obj(obj, "dt")
-        assert obj.dt == datetime.datetime(1789, 6, 17, 10, 42)
+        assert obj.dt == dt.datetime(1789, 6, 17, 10, 42)
 
 
 def test_datetime_field_force_4digit_year(app: Application) -> None:
@@ -178,7 +178,7 @@ def test_datetime_field_force_4digit_year(app: Application) -> None:
     headers = {"Accept-Language": "en"}
     with app.test_request_context(headers=headers):
         field = fields.DateTimeField().bind(Form(), "dt")
-        field.data = datetime.datetime(2011, 1, 23, 10, 42, tzinfo=pytz.utc)
+        field.data = dt.datetime(2011, 1, 23, 10, 42, tzinfo=pytz.utc)
         assert field._value() == f"1/23/2011, 6:42{NNSP}PM"
 
 
@@ -190,7 +190,7 @@ def test_date_field(app: Application) -> None:
     with app.test_request_context(headers=headers):
         field = fields.DateField().bind(Form(), "dt")
         field.process_formdata(["17/06/1789"])
-        assert field.data == datetime.date(1789, 6, 17)
+        assert field.data == dt.date(1789, 6, 17)
         assert field._value() == "17/06/1789"
 
 
@@ -201,5 +201,5 @@ def test_datefield_force_4digit_year(app: Application) -> None:
     headers = {"Accept-Language": "en"}
     with app.test_request_context(headers=headers):
         field = fields.DateField().bind(Form(), "dt")
-        field.data = datetime.date(2011, 1, 23)
+        field.data = dt.date(2011, 1, 23)
         assert field._value() == "1/23/2011"

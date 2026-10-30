@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.16] - 2025-12-4
+
+### Chore
+- Update dependencies and SlapOS configuration files
+- Update requirements.txt and sync dependencies
+- Add requirements_no_dev.txt file
+
 ## [1.1.15] - 2025-09-12
 
 ### Bug Fixes
