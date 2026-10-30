@@ -108,12 +108,6 @@ packages = ["src/abilian"]
 doc = [
     # Documentation
     "mkdocs-material>=9.5.4,<10.0.0",
-    "flynt>=1.0.1",
-    "snoop>=0.6.0",
-    "pytest-archon>=0.0.6",
-    "typeguard>=4.4.1",
-    "auto-type-annotate>=1.1.1",
-    "ty>=0.0.0a7",
 ]
 dev = [
     "abilian-devtools>=0.7",
@@ -145,6 +139,12 @@ dev = [
     # Tools
     "pyupgrade",
     "deptry",
+    "flynt>=1.0.1",
+    "snoop>=0.6.0",
+    "pytest-archon>=0.0.6",
+    "typeguard>=4.4.1",
+    "auto-type-annotate>=1.1.1",
+    "ty>=0.0.0a7",
 ]
 
 [tool.uv]
