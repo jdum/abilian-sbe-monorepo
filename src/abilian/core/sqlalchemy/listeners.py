@@ -45,3 +45,15 @@ def _set_sqlite_pragma(dbapi_connection: Any, connection_record: Any) -> None:
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON;")
         cursor.close()
+
+
+# Ensure MariaDB preserves id=0 on AUTO_INCREMENT columns (used by root/system User).
+@sa.event.listens_for(Engine, "connect")
+def _set_mysql_sql_mode(dbapi_connection: Any, connection_record: Any) -> None:
+    module_name = type(dbapi_connection).__module__
+    if module_name.startswith(("pymysql", "MySQLdb", "mariadb", "mysql")):
+        cursor = dbapi_connection.cursor()
+        cursor.execute(
+            "SET SESSION sql_mode = CONCAT(@@sql_mode, ',NO_AUTO_VALUE_ON_ZERO');"
+        )
+        cursor.close()
