@@ -342,7 +342,7 @@ class Entity(Indexable, BaseMixin, Model, metaclass=EntityMeta):
     _entity_type = Column("entity_type", String(1000), nullable=False)
     entity_type = ""
 
-    meta = Column(JSONDict(), nullable=False, default=dict, server_default="{}")
+    meta = Column(JSONDict(), nullable=False, default=dict)
     """
     A dictionnary of simple values (JSON-serializable) to conveniently annotate
     the entity.

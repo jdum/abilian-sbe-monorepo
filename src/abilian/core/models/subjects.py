@@ -24,7 +24,14 @@ from sqlalchemy.event import listens_for
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, deferred, relationship
 from sqlalchemy.schema import Column, ForeignKey, UniqueConstraint
-from sqlalchemy.types import Boolean, DateTime, Integer, LargeBinary, UnicodeText
+from sqlalchemy.types import (
+    Boolean,
+    DateTime,
+    Integer,
+    LargeBinary,
+    Unicode,
+    UnicodeText,
+)
 
 from abilian.core import sqlalchemy as sa_types
 from abilian.core.util import fqcn
@@ -198,7 +205,7 @@ class User(Principal, UserMixin, db.Model):
     # Should we add gender, salutation ?
 
     # System information
-    email = Column(UnicodeText, nullable=False)
+    email = Column(Unicode(255), nullable=False)  # for Mariadb set length of varchar
     can_login = Column(Boolean, nullable=False, default=True)
     password = Column(UnicodeText, default="*", info={"audit_hide_content": True})
 
