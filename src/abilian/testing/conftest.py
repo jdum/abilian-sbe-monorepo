@@ -7,6 +7,7 @@ Reuses fixtures defined in abilian-core.
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Any
 
 from pytest import fixture
@@ -37,7 +38,9 @@ class TestConfig:
     # WTF_CSRF_ENABLED = True
     WTF_CSRF_ENABLED = False
     BABEL_ACCEPT_LANGUAGES = ["en", "fr"]
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        "SQLALCHEMY_DATABASE_URI", "sqlite:///:memory:"
+    )
 
 
 @fixture(scope="module")
@@ -67,6 +70,8 @@ def db(app: Flask, app_context: AppContext) -> Iterator[SQLAlchemy]:
 
     cleanup_db(_db)
     _db.create_all()
+    if _db.engine.name in ("mysql", "mariadb"):
+        _db.session.begin()
     yield _db
 
     _db.session.remove()
