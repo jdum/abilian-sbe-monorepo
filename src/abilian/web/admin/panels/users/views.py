@@ -71,9 +71,9 @@ class JsonUsersList(base.JSONView):
         direction = asc if sort_dir == "asc" else desc
         order_by = list(map(direction, columns))
 
-        # sqlite does not support 'NULLS FIRST|LAST' in ORDER BY clauses
+        # sqlite and mysql/mariadb dont support 'NULLS FIRST|LAST' in ORDER BY clauses
         engine = query.session.get_bind(User.__mapper__)
-        if engine.name != "sqlite":
+        if engine.name not in ("sqlite", "mysql", "mariadb"):
             order_by[0] = nullslast(order_by[0])
 
         query = query.order_by(*order_by)
