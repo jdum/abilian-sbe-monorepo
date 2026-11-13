@@ -1,4 +1,4 @@
-.PHONY: test unit full-test pep8 clean setup
+.PHONY: test test-mariadb unit full-test pep8 clean setup
 
 default: lint-ruff test lint
 all: default
@@ -12,6 +12,12 @@ all: default
 test:
 	# pytest -n auto
 	pytest tests
+
+MARIADB_TEST_URI ?= mysql+pymysql://sbe:sbe@127.0.0.1/sbe_test?charset=utf8mb4
+
+## Run tests against MariaDB
+test-mariadb:
+	SQLALCHEMY_DATABASE_URI="$(MARIADB_TEST_URI)" pytest tests
 
 test-with-coverage:
 	pytest \

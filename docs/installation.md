@@ -30,6 +30,7 @@ List of packages to install with `apt`:
     libsqlite3-dev
     libbz2-dev
     postgresql
+    mariadb-server
     redis
     poppler-utils
     imagemagick
@@ -85,6 +86,38 @@ sudo -u postgres psql
 create database sbe;
 create user sbe with encrypted password 'sbe';
 grant all privileges on database sbe to sbe;
+```
+
+## Or create a MariaDB database (here named "sbe")
+
+On Linux (as `root` / `sudo mariadb`):
+
+```bash
+sudo mariadb -e "
+  CREATE DATABASE IF NOT EXISTS sbe CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE OR REPLACE USER 'sbe'@'localhost' IDENTIFIED BY 'sbe';
+  CREATE OR REPLACE USER 'sbe'@'127.0.0.1' IDENTIFIED BY 'sbe';
+  GRANT ALL PRIVILEGES ON sbe.* TO 'sbe'@'localhost';
+  GRANT ALL PRIVILEGES ON sbe.* TO 'sbe'@'127.0.0.1';
+"
+```
+
+On macOS (Homebrew `mariadb`), or to create the `sbe_test` database for `make test-mariadb`:
+
+```bash
+mariadb -u "$USER" -e "
+  CREATE DATABASE IF NOT EXISTS sbe_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE OR REPLACE USER 'sbe'@'localhost' IDENTIFIED BY 'sbe';
+  CREATE OR REPLACE USER 'sbe'@'127.0.0.1' IDENTIFIED BY 'sbe';
+  GRANT ALL PRIVILEGES ON sbe_test.* TO 'sbe'@'localhost';
+  GRANT ALL PRIVILEGES ON sbe_test.* TO 'sbe'@'127.0.0.1';
+"
+```
+
+Then configure the SQLAlchemy URI in `.env`:
+
+```bash
+FLASK_SQLALCHEMY_DATABASE_URI="mysql+pymysql://sbe:sbe@127.0.0.1/sbe?charset=utf8mb4"
 ```
 
 ## Start services if necessary
